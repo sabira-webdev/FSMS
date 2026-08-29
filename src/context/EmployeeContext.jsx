@@ -5,13 +5,13 @@ const STORAGE_KEY = 'fsms_employees_data'
 export const INITIAL_EMPLOYEES = [
   {
     id: 'EMP-1042',
-    name: 'Dr. Sarah Jenkins',
+    name: 'Jabir P k',
     firstName: 'Sarah',
     lastName: 'Jenkins',
     department: 'Quality Assurance',
     position: 'Head of QA & Lead Auditor',
     employmentType: 'Full-Time',
-    email: 's.jenkins@fsms-enterprise.org',
+    email: 'jabirapk@fsms-org',
     phone: '+1 (555) 234-5678',
     status: 'Active',
     shift: 'Morning (Shift A)',
@@ -267,10 +267,10 @@ export function EmployeeProvider({ children }) {
       prev.map((emp) =>
         emp.id === id
           ? {
-              ...emp,
-              ...updatedData,
-              name: updatedData.name || `${updatedData.firstName || emp.firstName} ${updatedData.lastName || emp.lastName}`.trim(),
-            }
+            ...emp,
+            ...updatedData,
+            name: updatedData.name || `${updatedData.firstName || emp.firstName} ${updatedData.lastName || emp.lastName}`.trim(),
+          }
           : emp
       )
     )

@@ -294,14 +294,13 @@ export function EditEmployee() {
       const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`
       const medicalClearanceSummary =
         formData.medicalFitnessStatus === 'Fit / Cleared for Food Handling'
-          ? `Cleared (Valid until ${
-              formData.medicalCertificateExpiryDate
-                ? new Date(formData.medicalCertificateExpiryDate).toLocaleDateString(
-                    'en-US',
-                    { month: 'short', year: 'numeric' }
-                  )
-                : 'Next Audit'
-            })`
+          ? `Cleared (Valid until ${formData.medicalCertificateExpiryDate
+            ? new Date(formData.medicalCertificateExpiryDate).toLocaleDateString(
+              'en-US',
+              { month: 'short', year: 'numeric' }
+            )
+            : 'Next Audit'
+          })`
           : formData.medicalFitnessStatus
 
       const updatedEmployeeData = {
@@ -357,10 +356,10 @@ export function EditEmployee() {
                 currentEmployee.status === 'Active'
                   ? 'success'
                   : currentEmployee.status === 'Pending Training'
-                  ? 'warning'
-                  : currentEmployee.status === 'Medical Review'
-                  ? 'danger'
-                  : 'info'
+                    ? 'warning'
+                    : currentEmployee.status === 'Medical Review'
+                      ? 'danger'
+                      : 'info'
               }
               dot
               size="sm"
@@ -467,7 +466,7 @@ export function EditEmployee() {
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 error={errors.email}
-                placeholder="s.jenkins@fsms-enterprise.org"
+                placeholder="jabirapk@fsms-org"
                 required
               />
 
@@ -743,26 +742,23 @@ export function EditEmployee() {
                       type="button"
                       key={cert}
                       onClick={() => handleToggleCert(cert)}
-                      className={`p-2.5 rounded-xl border text-left text-xs font-medium flex items-center justify-between transition-all cursor-pointer ${
-                        isChecked
+                      className={`p-2.5 rounded-xl border text-left text-xs font-medium flex items-center justify-between transition-all cursor-pointer ${isChecked
                           ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900 shadow-2xs font-semibold'
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2 min-w-0 pr-1">
                         <Award
-                          className={`w-3.5 h-3.5 shrink-0 ${
-                            isChecked ? 'text-emerald-600' : 'text-slate-400'
-                          }`}
+                          className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-emerald-600' : 'text-slate-400'
+                            }`}
                         />
                         <span className="truncate">{cert}</span>
                       </div>
                       <div
-                        className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${
-                          isChecked
+                        className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${isChecked
                             ? 'bg-emerald-600 border-emerald-600 text-white'
                             : 'border-slate-300 bg-white'
-                        }`}
+                          }`}
                       >
                         {isChecked && (
                           <svg

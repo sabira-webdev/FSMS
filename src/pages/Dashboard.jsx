@@ -36,7 +36,7 @@ export function Dashboard() {
     {
       id: 'INS-2026-084',
       facility: 'Cold Storage Unit 3 (Dairy & Meat)',
-      auditor: 'Sarah Jenkins',
+      auditor: 'Jabir P K',
       date: 'Today, 09:30 AM',
       score: '98%',
       status: 'Passed',
@@ -133,7 +133,7 @@ export function Dashboard() {
       <Alert
         type="success"
         title="Facility Quality Status: 100% Audit Readiness"
-        onDismiss={() => {}}
+        onDismiss={() => { }}
       >
         All Critical Control Points (CCPs) are operating within safe regulatory limits. Next scheduled GFSI internal audit in 5 days.
       </Alert>
