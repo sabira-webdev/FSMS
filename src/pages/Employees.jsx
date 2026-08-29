@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import {
   Users,
   Plus,
@@ -100,8 +100,7 @@ export function Employees() {
   const [selectedDept, setSelectedDept] = useState('All Departments')
   const [selectedStatus, setSelectedStatus] = useState('All Statuses')
 
-  // Modal States
-  const [viewingEmployee, setViewingEmployee] = useState(null)
+  // Delete Modal State
   const [deletingEmployee, setDeletingEmployee] = useState(null)
 
   // Filtered Employees
@@ -347,23 +346,32 @@ export function Employees() {
                     >
                       {/* Employee ID */}
                       <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-1 rounded text-xs border border-slate-200/80">
+                        <Link
+                          to={`/employees/${emp.id}`}
+                          className="font-mono font-semibold text-slate-800 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 px-2 py-1 rounded text-xs border border-slate-200/80 transition-colors"
+                        >
                           {emp.id}
-                        </span>
+                        </Link>
                       </td>
 
                       {/* Name & Position */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${emp.avatarGradient || 'from-emerald-600 to-teal-500'} text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs`}
+                          <Link
+                            to={`/employees/${emp.id}`}
+                            className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${
+                              emp.avatarGradient || 'from-emerald-600 to-teal-500'
+                            } text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs hover:scale-105 transition-transform`}
                           >
                             {getInitials(emp.name)}
-                          </div>
+                          </Link>
                           <div>
-                            <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                            <Link
+                              to={`/employees/${emp.id}`}
+                              className="font-semibold text-slate-900 hover:text-emerald-700 transition-colors flex items-center gap-1.5"
+                            >
                               {emp.name}
-                            </div>
+                            </Link>
                             <div className="text-xs text-slate-500">
                               {emp.position}
                             </div>
@@ -405,9 +413,9 @@ export function Employees() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => setViewingEmployee(emp)}
+                            onClick={() => navigate(`/employees/${emp.id}`)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
-                            title="View Full Profile"
+                            title="View Full Profile Dossier"
                             aria-label={`View ${emp.name}`}
                           >
                             <Eye className="w-4 h-4" />
@@ -479,153 +487,7 @@ export function Employees() {
       </Card>
 
       {/* ========================================================================= */}
-      {/* 1. VIEW EMPLOYEE DETAILS MODAL                                            */}
-      {/* ========================================================================= */}
-      {viewingEmployee && (
-        <Modal
-          isOpen={Boolean(viewingEmployee)}
-          onClose={() => setViewingEmployee(null)}
-          title="Personnel Profile & Food Safety Dossier"
-          description={`Comprehensive qualification records for ${viewingEmployee.name}`}
-          maxWidth="max-w-2xl"
-          footer={
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setViewingEmployee(null)}
-              >
-                Close
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                icon={Edit3}
-                onClick={() => {
-                  const empId = viewingEmployee.id
-                  setViewingEmployee(null)
-                  navigate(`/employees/${empId}/edit`)
-                }}
-              >
-                Edit Employee
-              </Button>
-            </>
-          }
-        >
-          <div className="space-y-6">
-            {/* Header Profile Card */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div
-                  className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${viewingEmployee.avatarGradient || 'from-emerald-600 to-teal-500'} text-white font-bold text-lg flex items-center justify-center shadow-md`}
-                >
-                  {getInitials(viewingEmployee.name)}
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    {viewingEmployee.name}
-                  </h4>
-                  <p className="text-xs text-slate-600 font-medium">
-                    {viewingEmployee.position}
-                  </p>
-                  <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    {viewingEmployee.department}
-                  </p>
-                </div>
-              </div>
-              <div className="flex sm:flex-col items-end gap-1.5 self-stretch sm:self-auto justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
-                <span className="text-xs font-mono font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
-                  {viewingEmployee.id}
-                </span>
-                {getStatusBadge(viewingEmployee.status)}
-              </div>
-            </div>
-
-            {/* Quick Contact & Shift Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-lg border border-slate-100 bg-white space-y-1">
-                <span className="text-slate-400 font-medium flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Email Address
-                </span>
-                <p className="font-semibold text-slate-800">{viewingEmployee.email}</p>
-              </div>
-
-              <div className="p-3 rounded-lg border border-slate-100 bg-white space-y-1">
-                <span className="text-slate-400 font-medium flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" /> Phone Number
-                </span>
-                <p className="font-semibold text-slate-800">{viewingEmployee.phone}</p>
-              </div>
-
-              <div className="p-3 rounded-lg border border-slate-100 bg-white space-y-1">
-                <span className="text-slate-400 font-medium flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" /> Shift Assignment
-                </span>
-                <p className="font-semibold text-slate-800">{viewingEmployee.shift}</p>
-              </div>
-
-              <div className="p-3 rounded-lg border border-slate-100 bg-white space-y-1">
-                <span className="text-slate-400 font-medium flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" /> Joined Facility
-                </span>
-                <p className="font-semibold text-slate-800">{viewingEmployee.joinedDate || '2023-01-15'}</p>
-              </div>
-            </div>
-
-            {/* Hygiene & Medical Clearance */}
-            <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
-                    <Stethoscope className="w-4 h-4" />
-                  </div>
-                  <h5 className="text-xs font-bold text-emerald-900">
-                    Food Handler Medical & Hygiene Clearance
-                  </h5>
-                </div>
-                <Badge variant="success" size="sm">Verified Clear</Badge>
-              </div>
-              <p className="text-xs text-emerald-800 font-medium">
-                {viewingEmployee.medicalClearance || 'Cleared (Valid until Dec 2026)'}
-              </p>
-              <p className="text-[11px] text-emerald-700">
-                Meets Codex Alimentarius and FDA Food Code health qualification requirements.
-              </p>
-            </div>
-
-            {/* Certifications & Qualifications */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2">
-                <Award className="w-4 h-4 text-emerald-600" />
-                <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Food Safety Certifications & Qualifications
-                </h5>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {viewingEmployee.certifications && viewingEmployee.certifications.length > 0 ? (
-                  viewingEmployee.certifications.map((cert, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200/90 text-slate-800 text-xs font-medium flex items-center gap-1.5 shadow-2xs"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{cert}</span>
-                    </div>
-                  ))
-                ) : (
-                  <span className="text-xs text-slate-500 italic">
-                    No active certifications recorded.
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 2. DELETE CONFIRMATION MODAL                                              */}
+      {/* DELETE CONFIRMATION MODAL                                                 */}
       {/* ========================================================================= */}
       {deletingEmployee && (
         <Modal

@@ -5,6 +5,7 @@ import { Dashboard } from '../pages/Dashboard'
 import { Employees } from '../pages/Employees'
 import { AddEmployee } from '../pages/AddEmployee'
 import { EditEmployee } from '../pages/EditEmployee'
+import { EmployeeProfile } from '../pages/EmployeeProfile'
 import { Departments } from '../pages/Departments'
 import { Checklists } from '../pages/Checklists'
 import { Inspections } from '../pages/Inspections'
@@ -25,6 +26,7 @@ export function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="employees" element={<Employees />} />
         <Route path="employees/new" element={<AddEmployee />} />
+        <Route path="employees/:employeeId" element={<EmployeeProfile />} />
         <Route path="employees/:employeeId/edit" element={<EditEmployee />} />
         <Route path="departments" element={<Departments />} />
         <Route path="checklists" element={<Checklists />} />
