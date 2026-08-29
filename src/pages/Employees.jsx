@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Users,
   Plus,
@@ -39,136 +40,7 @@ import {
   Modal,
   Alert,
 } from '../components/common'
-
-// Initial realistic dataset for food safety & manufacturing staff
-const INITIAL_EMPLOYEES = [
-  {
-    id: 'EMP-1042',
-    name: 'Dr. Sarah Jenkins',
-    department: 'Quality Assurance',
-    position: 'Head of QA & Lead Auditor',
-    email: 's.jenkins@fsms-enterprise.org',
-    phone: '+1 (555) 234-5678',
-    status: 'Active',
-    shift: 'Morning (Shift A)',
-    certifications: ['ISO 22000 Lead Auditor', 'HACCP Level 4', 'BRCGS Professional'],
-    medicalClearance: 'Cleared (Valid until Dec 2026)',
-    joinedDate: '2022-03-15',
-    avatarGradient: 'from-emerald-600 to-teal-500',
-  },
-  {
-    id: 'EMP-1043',
-    name: 'David Kumar',
-    department: 'Cold Chain Operations',
-    position: 'CCP Chiller Operations Lead',
-    email: 'd.kumar@fsms-enterprise.org',
-    phone: '+1 (555) 345-6789',
-    status: 'Active',
-    shift: 'Morning (Shift A)',
-    certifications: ['HACCP Level 3', 'Refrigerant & Cold Chain Compliance'],
-    medicalClearance: 'Cleared (Valid until Nov 2026)',
-    joinedDate: '2023-01-10',
-    avatarGradient: 'from-blue-600 to-cyan-500',
-  },
-  {
-    id: 'EMP-1044',
-    name: 'Elena Rostova',
-    department: 'Food Safety Lab',
-    position: 'Lead Microbiologist',
-    email: 'e.rostova@fsms-enterprise.org',
-    phone: '+1 (555) 456-7890',
-    status: 'Active',
-    shift: 'Morning (Shift A)',
-    certifications: ['Microbial Pathogen Testing', 'ISO 17025 Lab Standard'],
-    medicalClearance: 'Cleared (Valid until Jan 2027)',
-    joinedDate: '2021-08-20',
-    avatarGradient: 'from-purple-600 to-indigo-500',
-  },
-  {
-    id: 'EMP-1045',
-    name: 'Marcus Chen',
-    department: 'Sanitation & Hygiene',
-    position: 'CIP Sanitation Supervisor',
-    email: 'm.chen@fsms-enterprise.org',
-    phone: '+1 (555) 567-8901',
-    status: 'Pending Training',
-    shift: 'Night (Shift C)',
-    certifications: ['Chemical Safety & CIP Systems', 'Food Contact Sanitation'],
-    medicalClearance: 'Cleared (Valid until Oct 2026)',
-    joinedDate: '2023-09-01',
-    avatarGradient: 'from-amber-600 to-orange-500',
-  },
-  {
-    id: 'EMP-1046',
-    name: 'Amira Patel',
-    department: 'Production Line A',
-    position: 'Line Quality Inspector',
-    email: 'a.patel@fsms-enterprise.org',
-    phone: '+1 (555) 678-9012',
-    status: 'Active',
-    shift: 'Evening (Shift B)',
-    certifications: ['GMP Good Manufacturing Practices', 'Allergen Control'],
-    medicalClearance: 'Cleared (Valid until Mar 2027)',
-    joinedDate: '2024-02-15',
-    avatarGradient: 'from-rose-600 to-pink-500',
-  },
-  {
-    id: 'EMP-1047',
-    name: 'James Wilson',
-    department: 'Warehouse & Receiving',
-    position: 'Raw Material Intake Officer',
-    email: 'j.wilson@fsms-enterprise.org',
-    phone: '+1 (555) 789-0123',
-    status: 'Active',
-    shift: 'Morning (Shift A)',
-    certifications: ['Traceability & Lot Control', 'HACCP Prerequisite Programs'],
-    medicalClearance: 'Cleared (Valid until Aug 2026)',
-    joinedDate: '2022-11-05',
-    avatarGradient: 'from-teal-600 to-emerald-500',
-  },
-  {
-    id: 'EMP-1048',
-    name: 'Carlos Mendez',
-    department: 'Production Line B',
-    position: 'Thermal Process Specialist',
-    email: 'c.mendez@fsms-enterprise.org',
-    phone: '+1 (555) 890-1234',
-    status: 'On Leave',
-    shift: 'Evening (Shift B)',
-    certifications: ['Thermal Processing & Pasteurization', 'HACCP Level 3'],
-    medicalClearance: 'Cleared (Valid until May 2027)',
-    joinedDate: '2023-05-18',
-    avatarGradient: 'from-slate-600 to-slate-800',
-  },
-  {
-    id: 'EMP-1049',
-    name: 'Fatima Al-Mansoor',
-    department: 'Quality Assurance',
-    position: 'Supplier Quality Auditor',
-    email: 'f.almansoor@fsms-enterprise.org',
-    phone: '+1 (555) 901-2345',
-    status: 'Active',
-    shift: 'Morning (Shift A)',
-    certifications: ['GFSI Benchmark Standards', 'FSVP Compliance'],
-    medicalClearance: 'Cleared (Valid until Sep 2026)',
-    joinedDate: '2023-10-12',
-    avatarGradient: 'from-violet-600 to-purple-500',
-  },
-  {
-    id: 'EMP-1050',
-    name: 'Thomas Wright',
-    department: 'Sanitation & Hygiene',
-    position: 'Environmental Monitoring Tech',
-    email: 't.wright@fsms-enterprise.org',
-    phone: '+1 (555) 012-3456',
-    status: 'Medical Review',
-    shift: 'Night (Shift C)',
-    certifications: ['ATP Swabbing & Environmental Sampling'],
-    medicalClearance: 'Pending Annual Health Examination',
-    joinedDate: '2024-04-01',
-    avatarGradient: 'from-yellow-600 to-amber-500',
-  },
-]
+import { useEmployees } from '../context/EmployeeContext'
 
 const DEPARTMENTS = [
   'All Departments',
@@ -178,6 +50,7 @@ const DEPARTMENTS = [
   'Cold Chain Operations',
   'Production Line A',
   'Production Line B',
+  'Packaging & Dispatch',
   'Warehouse & Receiving',
 ]
 
@@ -213,6 +86,7 @@ function getStatusBadge(status) {
 
 // Helper for initials
 function getInitials(name) {
+  if (!name) return 'EM'
   return name
     .replace('Dr. ', '')
     .split(' ')
@@ -223,13 +97,18 @@ function getInitials(name) {
 }
 
 export function Employees() {
-  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES)
+  const navigate = useNavigate()
+  const {
+    employees,
+    updateEmployee,
+    deleteEmployee,
+    notification,
+    clearNotification,
+  } = useEmployees()
+
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDept, setSelectedDept] = useState('All Departments')
   const [selectedStatus, setSelectedStatus] = useState('All Statuses')
-
-  // Notification Banner
-  const [alertMessage, setAlertMessage] = useState(null)
 
   // Modal States
   const [viewingEmployee, setViewingEmployee] = useState(null)
@@ -237,7 +116,7 @@ export function Employees() {
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [deletingEmployee, setDeletingEmployee] = useState(null)
 
-  // Form State
+  // Edit Form State
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -256,11 +135,11 @@ export function Employees() {
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
       const matchesSearch =
-        emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.department.toLowerCase().includes(searchTerm.toLowerCase())
+        (emp.name && emp.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (emp.id && emp.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (emp.position && emp.position.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (emp.email && emp.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (emp.department && emp.department.toLowerCase().includes(searchTerm.toLowerCase()))
 
       const matchesDept =
         selectedDept === 'All Departments' || emp.department === selectedDept
@@ -277,7 +156,9 @@ export function Employees() {
     const total = employees.length
     const active = employees.filter((e) => e.status === 'Active').length
     const pendingTraining = employees.filter((e) => e.status === 'Pending Training').length
-    const medicalClearedCount = employees.filter((e) => !e.medicalClearance.startsWith('Pending')).length
+    const medicalClearedCount = employees.filter(
+      (e) => e.medicalClearance && !e.medicalClearance.startsWith('Pending')
+    ).length
     const medicalComplianceRate = total > 0 ? Math.round((medicalClearedCount / total) * 100) : 100
 
     return {
@@ -288,27 +169,7 @@ export function Employees() {
     }
   }, [employees])
 
-  // Open Form Modal (Add mode)
-  const handleOpenAddModal = () => {
-    const nextIdNumber = 1042 + employees.length
-    setEditingEmployee(null)
-    setFormData({
-      id: `EMP-${nextIdNumber}`,
-      name: '',
-      department: 'Quality Assurance',
-      position: '',
-      email: '',
-      phone: '',
-      status: 'Active',
-      shift: 'Morning (Shift A)',
-      certifications: 'HACCP Level 2, GMP Compliance',
-      medicalClearance: 'Cleared (Valid until Dec 2026)',
-    })
-    setFormErrors({})
-    setIsFormModalOpen(true)
-  }
-
-  // Open Form Modal (Edit mode)
+  // Open Edit Modal
   const handleOpenEditModal = (employee) => {
     setEditingEmployee(employee)
     setFormData({
@@ -322,20 +183,19 @@ export function Employees() {
       shift: employee.shift,
       certifications: Array.isArray(employee.certifications)
         ? employee.certifications.join(', ')
-        : employee.certifications,
-      medicalClearance: employee.medicalClearance,
+        : employee.certifications || '',
+      medicalClearance: employee.medicalClearance || 'Cleared (Valid until Dec 2026)',
     })
     setFormErrors({})
     setIsFormModalOpen(true)
   }
 
-  // Validate and Save Employee
-  const handleSaveEmployee = (e) => {
+  // Validate and Save Edit
+  const handleSaveEdit = (e) => {
     e.preventDefault()
 
     const errors = {}
     if (!formData.name.trim()) errors.name = 'Full name is required'
-    if (!formData.id.trim()) errors.id = 'Employee ID is required'
     if (!formData.position.trim()) errors.position = 'Position / Role is required'
     if (!formData.email.trim()) {
       errors.email = 'Email is required'
@@ -353,59 +213,16 @@ export function Employees() {
       : []
 
     if (editingEmployee) {
-      // Update existing
-      setEmployees((prev) =>
-        prev.map((emp) =>
-          emp.id === editingEmployee.id
-            ? {
-                ...emp,
-                name: formData.name.trim(),
-                department: formData.department,
-                position: formData.position.trim(),
-                email: formData.email.trim(),
-                phone: formData.phone.trim(),
-                status: formData.status,
-                shift: formData.shift,
-                certifications: certList,
-                medicalClearance: formData.medicalClearance,
-              }
-            : emp
-        )
-      )
-      setAlertMessage({
-        type: 'success',
-        text: `Employee record for "${formData.name}" was updated successfully.`,
-      })
-    } else {
-      // Create new
-      const gradients = [
-        'from-emerald-600 to-teal-500',
-        'from-blue-600 to-cyan-500',
-        'from-purple-600 to-indigo-500',
-        'from-amber-600 to-orange-500',
-        'from-teal-600 to-emerald-500',
-      ]
-      const randomGradient = gradients[Math.floor(Math.random() * gradients.length)]
-
-      const newEmp = {
-        id: formData.id.trim(),
+      updateEmployee(editingEmployee.id, {
         name: formData.name.trim(),
         department: formData.department,
         position: formData.position.trim(),
         email: formData.email.trim(),
-        phone: formData.phone.trim() || '+1 (555) 000-0000',
+        phone: formData.phone.trim(),
         status: formData.status,
         shift: formData.shift,
-        certifications: certList.length > 0 ? certList : ['Basic Hygiene & GMP'],
+        certifications: certList,
         medicalClearance: formData.medicalClearance,
-        joinedDate: new Date().toISOString().split('T')[0],
-        avatarGradient: randomGradient,
-      }
-
-      setEmployees((prev) => [newEmp, ...prev])
-      setAlertMessage({
-        type: 'success',
-        text: `New employee "${newEmp.name}" (${newEmp.id}) added to roster.`,
       })
     }
 
@@ -415,11 +232,7 @@ export function Employees() {
   // Delete / Remove Employee
   const handleConfirmDelete = () => {
     if (!deletingEmployee) return
-    setEmployees((prev) => prev.filter((emp) => emp.id !== deletingEmployee.id))
-    setAlertMessage({
-      type: 'info',
-      text: `Employee "${deletingEmployee.name}" (${deletingEmployee.id}) was removed from active roster.`,
-    })
+    deleteEmployee(deletingEmployee.id)
     setDeletingEmployee(null)
   }
 
@@ -448,21 +261,21 @@ export function Employees() {
             variant="primary"
             size="sm"
             icon={Plus}
-            onClick={handleOpenAddModal}
+            onClick={() => navigate('/employees/new')}
           >
             Add Employee
           </Button>
         }
       />
 
-      {/* Alert Notification */}
-      {alertMessage && (
+      {/* Global Alert Notification */}
+      {notification && (
         <Alert
-          type={alertMessage.type}
-          title={alertMessage.type === 'success' ? 'Roster Updated' : 'System Notice'}
-          onDismiss={() => setAlertMessage(null)}
+          type={notification.type}
+          title={notification.title}
+          onDismiss={clearNotification}
         >
-          {alertMessage.text}
+          {notification.text}
         </Alert>
       )}
 
@@ -843,7 +656,7 @@ export function Employees() {
                 <span className="text-slate-400 font-medium flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" /> Joined Facility
                 </span>
-                <p className="font-semibold text-slate-800">{viewingEmployee.joinedDate}</p>
+                <p className="font-semibold text-slate-800">{viewingEmployee.joinedDate || '2023-01-15'}</p>
               </div>
             </div>
 
@@ -861,7 +674,7 @@ export function Employees() {
                 <Badge variant="success" size="sm">Verified Clear</Badge>
               </div>
               <p className="text-xs text-emerald-800 font-medium">
-                {viewingEmployee.medicalClearance}
+                {viewingEmployee.medicalClearance || 'Cleared (Valid until Dec 2026)'}
               </p>
               <p className="text-[11px] text-emerald-700">
                 Meets Codex Alimentarius and FDA Food Code health qualification requirements.
@@ -899,18 +712,14 @@ export function Employees() {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. ADD / EDIT EMPLOYEE MODAL                                              */}
+      {/* 2. QUICK EDIT MODAL                                                       */}
       {/* ========================================================================= */}
       {isFormModalOpen && (
         <Modal
           isOpen={isFormModalOpen}
           onClose={() => setIsFormModalOpen(false)}
-          title={editingEmployee ? 'Edit Employee Record' : 'Add New Food Safety Personnel'}
-          description={
-            editingEmployee
-              ? `Update profile and assignment details for ${editingEmployee.name}`
-              : 'Register a new food handler, auditor, or hygiene supervisor.'
-          }
+          title="Edit Employee Record"
+          description={`Update profile and assignment details for ${editingEmployee?.name}`}
           maxWidth="max-w-2xl"
           footer={
             <>
@@ -924,38 +733,32 @@ export function Employees() {
               <Button
                 variant="primary"
                 size="sm"
-                onClick={handleSaveEmployee}
+                onClick={handleSaveEdit}
               >
-                {editingEmployee ? 'Save Changes' : 'Create Record'}
+                Save Changes
               </Button>
             </>
           }
         >
-          <form onSubmit={handleSaveEmployee} className="space-y-4">
+          <form onSubmit={handleSaveEdit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Employee ID */}
               <Input
                 label="Employee ID"
                 value={formData.id}
-                onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                error={formErrors.id}
-                placeholder="e.g. EMP-1051"
-                required
+                disabled
+                className="bg-slate-50 cursor-not-allowed opacity-75"
               />
 
-              {/* Full Name */}
               <Input
                 label="Full Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 error={formErrors.name}
-                placeholder="e.g. Maria Gonzalez"
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Department */}
               <div className="w-full flex flex-col gap-1.5 text-left">
                 <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                   Department <span className="text-rose-500">*</span>
@@ -978,19 +781,16 @@ export function Employees() {
                 </div>
               </div>
 
-              {/* Position / Role */}
               <Input
                 label="Position / Role"
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                 error={formErrors.position}
-                placeholder="e.g. HACCP Coordinator"
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Email */}
               <Input
                 label="Email Address"
                 type="email"
@@ -998,23 +798,19 @@ export function Employees() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 error={formErrors.email}
-                placeholder="m.gonzalez@fsms-enterprise.org"
                 required
               />
 
-              {/* Phone */}
               <Input
                 label="Phone Number"
                 type="tel"
                 icon={Phone}
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+1 (555) 000-0000"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Shift */}
               <div className="w-full flex flex-col gap-1.5 text-left">
                 <label className="text-xs font-semibold text-slate-700">
                   Shift Assignment
@@ -1035,10 +831,9 @@ export function Employees() {
                 </div>
               </div>
 
-              {/* Status */}
               <div className="w-full flex flex-col gap-1.5 text-left">
                 <label className="text-xs font-semibold text-slate-700">
-                  Employment & Compliance Status
+                  Status
                 </label>
                 <div className="relative">
                   <select
@@ -1057,25 +852,13 @@ export function Employees() {
               </div>
             </div>
 
-            {/* Certifications */}
             <Input
               label="Food Safety Certifications (comma-separated)"
               value={formData.certifications}
               onChange={(e) =>
                 setFormData({ ...formData, certifications: e.target.value })
               }
-              placeholder="e.g. ISO 22000, HACCP Level 3, Allergen Control"
-              helperText="Separate multiple credentials with commas."
-            />
-
-            {/* Medical Clearance */}
-            <Input
-              label="Hygiene & Medical Clearance Status"
-              value={formData.medicalClearance}
-              onChange={(e) =>
-                setFormData({ ...formData, medicalClearance: e.target.value })
-              }
-              placeholder="e.g. Cleared (Valid until Dec 2026)"
+              placeholder="e.g. ISO 22000, HACCP Level 3"
             />
           </form>
         </Modal>

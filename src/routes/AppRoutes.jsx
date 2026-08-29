@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Dashboard } from '../pages/Dashboard'
 import { Employees } from '../pages/Employees'
+import { AddEmployee } from '../pages/AddEmployee'
 import { Departments } from '../pages/Departments'
 import { Checklists } from '../pages/Checklists'
 import { Inspections } from '../pages/Inspections'
@@ -22,6 +23,7 @@ export function AppRoutes() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="employees" element={<Employees />} />
+        <Route path="employees/new" element={<AddEmployee />} />
         <Route path="departments" element={<Departments />} />
         <Route path="checklists" element={<Checklists />} />
         <Route path="inspections" element={<Inspections />} />
