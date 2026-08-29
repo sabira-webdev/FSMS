@@ -30,10 +30,10 @@ export function Profile() {
         {/* Left Column: Avatar & summary card */}
         <Card className="text-center p-6 space-y-4">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-emerald-700 to-teal-500 text-white font-bold text-2xl flex items-center justify-center mx-auto shadow-md shadow-emerald-900/20">
-            SJ
+            J
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Dr. Sarah Jenkins</h3>
+            <h3 className="text-lg font-bold text-slate-900">Jabir P k</h3>
             <p className="text-xs text-slate-500 font-medium">Head of Quality Assurance & Compliance</p>
             <div className="mt-2 flex items-center justify-center gap-1.5">
               <Badge variant="success" size="sm">Active</Badge>
@@ -43,7 +43,7 @@ export function Profile() {
           <div className="pt-4 border-t border-slate-100 text-xs text-left space-y-2.5 text-slate-600">
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-slate-400" />
-              <span>s.jenkins@fsms-enterprise.org</span>
+              <span>jabirapk@fsms-org</span>
             </div>
             <div className="flex items-center gap-2">
               <Building className="w-4 h-4 text-slate-400" />
