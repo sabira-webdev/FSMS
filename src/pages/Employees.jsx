@@ -18,10 +18,7 @@ import {
   Clock,
   Calendar,
   X,
-  Sparkles,
   ChevronDown,
-  FileSpreadsheet,
-  RefreshCw,
   UserCheck,
   Stethoscope,
 } from 'lucide-react'
@@ -62,12 +59,6 @@ const STATUS_OPTIONS = [
   'Medical Review',
 ]
 
-const SHIFTS = [
-  'Morning (Shift A)',
-  'Evening (Shift B)',
-  'Night (Shift C)',
-]
-
 // Helper for status badge variant
 function getStatusBadge(status) {
   switch (status) {
@@ -100,7 +91,6 @@ export function Employees() {
   const navigate = useNavigate()
   const {
     employees,
-    updateEmployee,
     deleteEmployee,
     notification,
     clearNotification,
@@ -112,24 +102,7 @@ export function Employees() {
 
   // Modal States
   const [viewingEmployee, setViewingEmployee] = useState(null)
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false)
-  const [editingEmployee, setEditingEmployee] = useState(null)
   const [deletingEmployee, setDeletingEmployee] = useState(null)
-
-  // Edit Form State
-  const [formData, setFormData] = useState({
-    id: '',
-    name: '',
-    department: 'Quality Assurance',
-    position: '',
-    email: '',
-    phone: '',
-    status: 'Active',
-    shift: 'Morning (Shift A)',
-    certifications: '',
-    medicalClearance: 'Cleared (Valid until Dec 2026)',
-  })
-  const [formErrors, setFormErrors] = useState({})
 
   // Filtered Employees
   const filteredEmployees = useMemo(() => {
@@ -168,66 +141,6 @@ export function Employees() {
       medicalComplianceRate,
     }
   }, [employees])
-
-  // Open Edit Modal
-  const handleOpenEditModal = (employee) => {
-    setEditingEmployee(employee)
-    setFormData({
-      id: employee.id,
-      name: employee.name,
-      department: employee.department,
-      position: employee.position,
-      email: employee.email,
-      phone: employee.phone,
-      status: employee.status,
-      shift: employee.shift,
-      certifications: Array.isArray(employee.certifications)
-        ? employee.certifications.join(', ')
-        : employee.certifications || '',
-      medicalClearance: employee.medicalClearance || 'Cleared (Valid until Dec 2026)',
-    })
-    setFormErrors({})
-    setIsFormModalOpen(true)
-  }
-
-  // Validate and Save Edit
-  const handleSaveEdit = (e) => {
-    e.preventDefault()
-
-    const errors = {}
-    if (!formData.name.trim()) errors.name = 'Full name is required'
-    if (!formData.position.trim()) errors.position = 'Position / Role is required'
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address'
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors)
-      return
-    }
-
-    const certList = formData.certifications
-      ? formData.certifications.split(',').map((c) => c.trim()).filter(Boolean)
-      : []
-
-    if (editingEmployee) {
-      updateEmployee(editingEmployee.id, {
-        name: formData.name.trim(),
-        department: formData.department,
-        position: formData.position.trim(),
-        email: formData.email.trim(),
-        phone: formData.phone.trim(),
-        status: formData.status,
-        shift: formData.shift,
-        certifications: certList,
-        medicalClearance: formData.medicalClearance,
-      })
-    }
-
-    setIsFormModalOpen(false)
-  }
 
   // Delete / Remove Employee
   const handleConfirmDelete = () => {
@@ -501,9 +414,9 @@ export function Employees() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleOpenEditModal(emp)}
+                            onClick={() => navigate(`/employees/${emp.id}/edit`)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                            title="Edit Employee"
+                            title="Edit Employee Record"
                             aria-label={`Edit ${emp.name}`}
                           >
                             <Edit3 className="w-4 h-4" />
@@ -589,9 +502,9 @@ export function Employees() {
                 size="sm"
                 icon={Edit3}
                 onClick={() => {
-                  const emp = viewingEmployee
+                  const empId = viewingEmployee.id
                   setViewingEmployee(null)
-                  handleOpenEditModal(emp)
+                  navigate(`/employees/${empId}/edit`)
                 }}
               >
                 Edit Employee
@@ -712,160 +625,7 @@ export function Employees() {
       )}
 
       {/* ========================================================================= */}
-      {/* 2. QUICK EDIT MODAL                                                       */}
-      {/* ========================================================================= */}
-      {isFormModalOpen && (
-        <Modal
-          isOpen={isFormModalOpen}
-          onClose={() => setIsFormModalOpen(false)}
-          title="Edit Employee Record"
-          description={`Update profile and assignment details for ${editingEmployee?.name}`}
-          maxWidth="max-w-2xl"
-          footer={
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsFormModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleSaveEdit}
-              >
-                Save Changes
-              </Button>
-            </>
-          }
-        >
-          <form onSubmit={handleSaveEdit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Employee ID"
-                value={formData.id}
-                disabled
-                className="bg-slate-50 cursor-not-allowed opacity-75"
-              />
-
-              <Input
-                label="Full Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                error={formErrors.name}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="w-full flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
-                  Department <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    value={formData.department}
-                    onChange={(e) =>
-                      setFormData({ ...formData, department: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors appearance-none pr-8"
-                  >
-                    {DEPARTMENTS.filter((d) => d !== 'All Departments').map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
-                </div>
-              </div>
-
-              <Input
-                label="Position / Role"
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                error={formErrors.position}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Email Address"
-                type="email"
-                icon={Mail}
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                error={formErrors.email}
-                required
-              />
-
-              <Input
-                label="Phone Number"
-                type="tel"
-                icon={Phone}
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="w-full flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-slate-700">
-                  Shift Assignment
-                </label>
-                <div className="relative">
-                  <select
-                    value={formData.shift}
-                    onChange={(e) => setFormData({ ...formData, shift: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors appearance-none pr-8"
-                  >
-                    {SHIFTS.map((shift) => (
-                      <option key={shift} value={shift}>
-                        {shift}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="w-full flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-slate-700">
-                  Status
-                </label>
-                <div className="relative">
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors appearance-none pr-8"
-                  >
-                    {STATUS_OPTIONS.filter((s) => s !== 'All Statuses').map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            <Input
-              label="Food Safety Certifications (comma-separated)"
-              value={formData.certifications}
-              onChange={(e) =>
-                setFormData({ ...formData, certifications: e.target.value })
-              }
-              placeholder="e.g. ISO 22000, HACCP Level 3"
-            />
-          </form>
-        </Modal>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 3. DELETE CONFIRMATION MODAL                                              */}
+      {/* 2. DELETE CONFIRMATION MODAL                                              */}
       {/* ========================================================================= */}
       {deletingEmployee && (
         <Modal
