@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   UserPlus,
@@ -96,7 +96,14 @@ const AVAILABLE_CERTIFICATIONS = [
 
 export function AddEmployee() {
   const navigate = useNavigate()
-  const { employees, addEmployee } = useEmployees()
+  const { employees, departments: dbDepartments, addEmployee } = useEmployees()
+
+  const departmentOptions = useMemo(() => {
+    if (dbDepartments && dbDepartments.length > 0) {
+      return dbDepartments.map((d) => d.name)
+    }
+    return DEPARTMENTS
+  }, [dbDepartments])
 
   // Generate next default ID
   const nextId = `EMP-${1042 + employees.length + 1}`
@@ -209,7 +216,7 @@ export function AddEmployee() {
   }
 
   // Submit Handler
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setFormAlert(null)
 
@@ -257,14 +264,14 @@ export function AddEmployee() {
         medicalClearance: medicalClearanceSummary,
       }
 
-      addEmployee(newEmployeeData)
+      await addEmployee(newEmployeeData)
 
       // Navigate back to employee list
       navigate('/employees')
     } catch (err) {
       setFormAlert({
         type: 'danger',
-        message: 'Failed to create employee record. Please try again.',
+        message: 'Failed to create employee record. ' + (err?.message || 'Please try again.'),
       })
       setIsSubmitting(false)
     }
@@ -436,7 +443,7 @@ export function AddEmployee() {
                     onChange={(e) => handleChange('department', e.target.value)}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors appearance-none pr-8 cursor-pointer"
                   >
-                    {DEPARTMENTS.map((dept) => (
+                    {departmentOptions.map((dept) => (
                       <option key={dept} value={dept}>
                         {dept}
                       </option>

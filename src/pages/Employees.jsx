@@ -91,10 +91,18 @@ export function Employees() {
   const navigate = useNavigate()
   const {
     employees,
+    departments: dbDepartments,
     deleteEmployee,
     notification,
     clearNotification,
   } = useEmployees()
+
+  const departmentList = useMemo(() => {
+    if (dbDepartments && dbDepartments.length > 0) {
+      return ['All Departments', ...dbDepartments.map((d) => d.name)]
+    }
+    return DEPARTMENTS
+  }, [dbDepartments])
 
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDept, setSelectedDept] = useState('All Departments')
@@ -267,7 +275,7 @@ export function Employees() {
                   onChange={(e) => setSelectedDept(e.target.value)}
                   className="w-full h-9.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors cursor-pointer appearance-none pr-8"
                 >
-                  {DEPARTMENTS.map((dept) => (
+                  {departmentList.map((dept) => (
                     <option key={dept} value={dept}>
                       {dept}
                     </option>

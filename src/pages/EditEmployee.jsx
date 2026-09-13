@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   UserCheck,
@@ -95,11 +95,19 @@ const AVAILABLE_CERTIFICATIONS = [
 export function EditEmployee() {
   const { employeeId } = useParams()
   const navigate = useNavigate()
-  const { employees, updateEmployee } = useEmployees()
+  const { employees, departments: dbDepartments, updateEmployee } = useEmployees()
+
+  const departmentOptions = useMemo(() => {
+    if (dbDepartments && dbDepartments.length > 0) {
+      return dbDepartments.map((d) => d.name)
+    }
+    return DEPARTMENTS
+  }, [dbDepartments])
 
   // Find target employee
   const currentEmployee = employees.find(
-    (e) => e.id.toLowerCase() === (employeeId || '').toLowerCase()
+    (e) => e.id?.toLowerCase() === (employeeId || '').toLowerCase() ||
+           e.employee_id?.toLowerCase() === (employeeId || '').toLowerCase()
   )
 
   // Form State
@@ -275,7 +283,7 @@ export function EditEmployee() {
   }
 
   // Save Updates
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setFormAlert(null)
 
@@ -327,14 +335,14 @@ export function EditEmployee() {
         medicalClearance: medicalClearanceSummary,
       }
 
-      updateEmployee(currentEmployee.id, updatedEmployeeData)
+      await updateEmployee(currentEmployee.id, updatedEmployeeData)
 
       // Navigate back to employee list
       navigate('/employees')
     } catch (err) {
       setFormAlert({
         type: 'danger',
-        message: 'Failed to update employee record. Please try again.',
+        message: 'Failed to update employee record. ' + (err?.message || 'Please try again.'),
       })
       setIsSubmitting(false)
     }
@@ -525,7 +533,7 @@ export function EditEmployee() {
                     onChange={(e) => handleChange('department', e.target.value)}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors appearance-none pr-8 cursor-pointer"
                   >
-                    {DEPARTMENTS.map((dept) => (
+                    {departmentOptions.map((dept) => (
                       <option key={dept} value={dept}>
                         {dept}
                       </option>

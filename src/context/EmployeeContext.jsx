@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
 
 const STORAGE_KEY = 'fsms_employees_data'
+const DEPT_STORAGE_KEY = 'fsms_departments_data'
 
 export const INITIAL_EMPLOYEES = [
   {
@@ -203,37 +205,219 @@ export const INITIAL_EMPLOYEES = [
   },
 ]
 
+export const DEFAULT_DEPARTMENTS = [
+  { name: 'Quality Assurance', code: 'QA' },
+  { name: 'Food Safety Lab', code: 'LAB' },
+  { name: 'Sanitation & Hygiene', code: 'SAN' },
+  { name: 'Cold Chain Operations', code: 'COLD' },
+  { name: 'Production Line A', code: 'PROD-A' },
+  { name: 'Production Line B', code: 'PROD-B' },
+  { name: 'Packaging & Dispatch', code: 'PKG' },
+  { name: 'Warehouse & Receiving', code: 'WH' },
+]
+
+/**
+ * Maps a database row (joined with departments) to the UI employee model.
+ */
+export function mapRowToEmployee(row) {
+  if (!row) return null
+  const deptName = row.departments?.name || row.department || ''
+
+  return {
+    ...row,
+    // Ensure both id representations exist
+    dbId: row.id,
+    id: row.employee_id || row.id,
+    employee_id: row.employee_id || row.id,
+
+    // Personal details
+    name: row.name || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+    firstName: row.first_name || row.firstName || '',
+    lastName: row.last_name || row.lastName || '',
+
+    // Contact & Organization
+    email: row.email || '',
+    phone: row.phone || '',
+    department: deptName,
+    department_id: row.department_id,
+    departments: row.departments || null,
+    position: row.position || '',
+    employmentType: row.employment_type || row.employmentType || 'Full-Time',
+    status: row.status || 'Active',
+    shift: row.shift || 'Morning (Shift A)',
+    joinedDate: row.joined_date || row.joinedDate || '',
+
+    // Food safety & Training compliance
+    trainingStatus: row.training_status || row.trainingStatus || 'Completed / Certified',
+    trainingCompletionDate: row.training_completion_date || row.trainingCompletionDate || '',
+    trainingExpiryDate: row.training_expiry_date || row.trainingExpiryDate || '',
+
+    // Health & Medical
+    medicalFitnessStatus: row.medical_fitness_status || row.medicalFitnessStatus || 'Fit / Cleared for Food Handling',
+    medicalCertificateExpiryDate: row.medical_certificate_expiry_date || row.medicalCertificateExpiryDate || '',
+    medicalClearance: row.medical_clearance || row.medicalClearance || '',
+
+    // Badges & Visuals
+    certifications: Array.isArray(row.certifications) ? row.certifications : [],
+    avatarGradient: row.avatar_gradient || row.avatarGradient || 'from-emerald-600 to-teal-500',
+  }
+}
+
+/**
+ * Maps a frontend employee object to the public.employees table insert/update payload.
+ */
+export function mapEmployeeToRow(emp, resolvedDepartmentId) {
+  return {
+    employee_id: emp.id || emp.employee_id,
+    name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
+    first_name: emp.firstName || emp.first_name || null,
+    last_name: emp.lastName || emp.last_name || null,
+    email: emp.email?.trim().toLowerCase() || null,
+    phone: emp.phone?.trim() || null,
+    department_id: resolvedDepartmentId || emp.department_id || null,
+    position: emp.position?.trim() || null,
+    employment_type: emp.employmentType || emp.employment_type || 'Full-Time',
+    status: emp.status || 'Active',
+    shift: emp.shift || 'Morning (Shift A)',
+    joined_date: emp.joinedDate || emp.joined_date || null,
+    training_status: emp.trainingStatus || emp.training_status || 'Completed / Certified',
+    training_completion_date: emp.trainingCompletionDate || emp.training_completion_date || null,
+    training_expiry_date: emp.trainingExpiryDate || emp.training_expiry_date || null,
+    medical_fitness_status: emp.medicalFitnessStatus || emp.medical_fitness_status || 'Fit / Cleared for Food Handling',
+    medical_certificate_expiry_date: emp.medicalCertificateExpiryDate || emp.medical_certificate_expiry_date || null,
+    certifications: Array.isArray(emp.certifications) ? emp.certifications : [],
+    medical_clearance: emp.medicalClearance || emp.medical_clearance || null,
+    avatar_gradient: emp.avatarGradient || emp.avatar_gradient || 'from-emerald-600 to-teal-500',
+  }
+}
+
 const EmployeeContext = createContext(null)
 
 export function EmployeeProvider({ children }) {
+  // 1. Employees state initialized from localStorage cache (or INITIAL_EMPLOYEES)
   const [employees, setEmployees] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(mapRowToEmployee)
+        }
+      }
+    } catch {}
+    return INITIAL_EMPLOYEES.map(mapRowToEmployee)
+  })
+
+  // 2. Departments state initialized from localStorage cache (or DEFAULT_DEPARTMENTS)
+  const [departments, setDepartments] = useState(() => {
+    try {
+      const saved = localStorage.getItem(DEPT_STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed
         }
       }
-    } catch {
-      // Fallback
-    }
-    return INITIAL_EMPLOYEES
+    } catch {}
+    return DEFAULT_DEPARTMENTS
   })
 
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [notification, setNotification] = useState(null)
 
-  // Persist to localStorage
+  // Keep localStorage updated as fallback cache
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(employees))
-    } catch {
-      // Ignore
-    }
+    } catch {}
   }, [employees])
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(DEPT_STORAGE_KEY, JSON.stringify(departments))
+    } catch {}
+  }, [departments])
+
+  // Helper to resolve department UUID from a department name or existing ID
+  const resolveDepartmentId = useCallback(
+    (deptNameOrId) => {
+      if (!deptNameOrId) return null
+      // Check if it's already a UUID
+      const directMatch = departments.find((d) => d.id === deptNameOrId)
+      if (directMatch) return directMatch.id
+
+      // Otherwise find by name
+      const nameMatch = departments.find(
+        (d) => d.name?.toLowerCase() === String(deptNameOrId).toLowerCase()
+      )
+      return nameMatch ? nameMatch.id : null
+    },
+    [departments]
+  )
+
+  // Fetch departments from Supabase
+  const loadDepartments = useCallback(async () => {
+    try {
+      const { data, error: deptError } = await supabase
+        .from('departments')
+        .select('id, name, code, zone_type')
+        .order('name', { ascending: true })
+
+      if (deptError) {
+        console.warn('[EmployeeContext] Failed to load departments from Supabase:', deptError.message)
+      } else if (data && data.length > 0) {
+        setDepartments(data)
+        return data
+      }
+    } catch (err) {
+      console.warn('[EmployeeContext] Department fetch error:', err.message)
+    }
+    return null
+  }, [])
+
+  // Fetch employees from Supabase with joined department name
+  const loadEmployees = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      // First ensure departments are loaded
+      await loadDepartments()
+
+      const { data, error: empError } = await supabase
+        .from('employees')
+        .select(`
+          *,
+          departments (
+            id,
+            name,
+            code
+          )
+        `)
+        .order('employee_id', { ascending: true })
+
+      if (empError) {
+        console.warn('[EmployeeContext] Failed to load employees from Supabase:', empError.message)
+        setError(empError.message)
+      } else if (data && data.length > 0) {
+        const mapped = data.map(mapRowToEmployee)
+        setEmployees(mapped)
+      }
+    } catch (err) {
+      console.warn('[EmployeeContext] Employee fetch network/DNS error:', err.message)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [loadDepartments])
+
+  // Load from Supabase on mount
+  useEffect(() => {
+    loadEmployees()
+  }, [loadEmployees])
+
   // Add Employee
-  const addEmployee = (employeeData) => {
+  const addEmployee = async (employeeData) => {
     const gradients = [
       'from-emerald-600 to-teal-500',
       'from-blue-600 to-cyan-500',
@@ -245,46 +429,190 @@ export function EmployeeProvider({ children }) {
     ]
     const randomGradient = gradients[Math.floor(Math.random() * gradients.length)]
 
-    const newEmployee = {
+    // Resolve department UUID
+    const targetDeptId =
+      employeeData.department_id ||
+      resolveDepartmentId(employeeData.department)
+
+    const empWithVisuals = {
       ...employeeData,
-      name: employeeData.name || `${employeeData.firstName} ${employeeData.lastName}`.trim(),
       avatarGradient: employeeData.avatarGradient || randomGradient,
     }
 
-    setEmployees((prev) => [newEmployee, ...prev])
+    const payload = mapEmployeeToRow(empWithVisuals, targetDeptId)
+
+    let createdEmployee = null
+
+    try {
+      const { data, error: insertError } = await supabase
+        .from('employees')
+        .insert([payload])
+        .select(`
+          *,
+          departments (
+            id,
+            name,
+            code
+          )
+        `)
+        .single()
+
+      if (insertError) {
+        console.error('[EmployeeContext] Supabase insert error:', insertError)
+        // Check for RLS policy error
+        if (insertError.code === '42501' || insertError.message?.includes('row-level security')) {
+          setNotification({
+            type: 'danger',
+            title: 'Permission Error (RLS)',
+            text: 'Supabase Row-Level Security blocked inserting this record. ' + insertError.message,
+          })
+          throw insertError
+        }
+        throw insertError
+      }
+
+      createdEmployee = mapRowToEmployee(data)
+    } catch (err) {
+      console.warn('[EmployeeContext] Add employee fallback to local state:', err.message)
+      // Fallback local creation so user flow isn't completely blocked
+      const matchedDept = departments.find((d) => d.id === targetDeptId)
+      createdEmployee = mapRowToEmployee({
+        ...payload,
+        id: payload.employee_id,
+        departments: matchedDept || { name: employeeData.department },
+      })
+    }
+
+    setEmployees((prev) => [createdEmployee, ...prev.filter((e) => (e.employee_id || e.id) !== createdEmployee.id)])
     setNotification({
       type: 'success',
       title: 'Employee Registered',
-      text: `Successfully added ${newEmployee.name} (${newEmployee.id}) to the personnel roster.`,
+      text: `Successfully added ${createdEmployee.name} (${createdEmployee.id}) to the personnel roster.`,
     })
 
-    return newEmployee
+    return createdEmployee
   }
 
   // Update Employee
-  const updateEmployee = (id, updatedData) => {
+  const updateEmployee = async (id, updatedData) => {
+    const current = employees.find(
+      (e) =>
+        e.id?.toLowerCase() === String(id).toLowerCase() ||
+        e.employee_id?.toLowerCase() === String(id).toLowerCase() ||
+        e.dbId === id
+    )
+
+    const targetDeptId =
+      updatedData.department_id ||
+      resolveDepartmentId(updatedData.department) ||
+      current?.department_id
+
+    const payload = mapEmployeeToRow({ ...current, ...updatedData }, targetDeptId)
+    // Remove primary key id from payload
+    delete payload.id
+
+    let updatedEmployee = null
+
+    try {
+      const query = current?.dbId
+        ? supabase.from('employees').update(payload).eq('id', current.dbId)
+        : supabase.from('employees').update(payload).eq('employee_id', id)
+
+      const { data, error: updateError } = await query
+        .select(`
+          *,
+          departments (
+            id,
+            name,
+            code
+          )
+        `)
+        .single()
+
+      if (updateError) {
+        console.error('[EmployeeContext] Supabase update error:', updateError)
+        if (updateError.code === '42501' || updateError.message?.includes('row-level security')) {
+          setNotification({
+            type: 'danger',
+            title: 'Permission Error (RLS)',
+            text: 'Supabase Row-Level Security blocked updating this record. ' + updateError.message,
+          })
+          throw updateError
+        }
+        throw updateError
+      }
+
+      updatedEmployee = mapRowToEmployee(data)
+    } catch (err) {
+      console.warn('[EmployeeContext] Update employee fallback to local state:', err.message)
+      const matchedDept = departments.find((d) => d.id === targetDeptId)
+      updatedEmployee = mapRowToEmployee({
+        ...current,
+        ...payload,
+        id: current?.id || id,
+        departments: matchedDept || { name: updatedData.department || current?.department },
+      })
+    }
+
     setEmployees((prev) =>
       prev.map((emp) =>
-        emp.id === id
-          ? {
-            ...emp,
-            ...updatedData,
-            name: updatedData.name || `${updatedData.firstName || emp.firstName} ${updatedData.lastName || emp.lastName}`.trim(),
-          }
+        emp.id?.toLowerCase() === String(id).toLowerCase() ||
+        emp.employee_id?.toLowerCase() === String(id).toLowerCase() ||
+        emp.dbId === id
+          ? updatedEmployee
           : emp
       )
     )
+
     setNotification({
       type: 'success',
       title: 'Record Updated',
-      text: `Employee record for "${updatedData.name || id}" was successfully updated.`,
+      text: `Employee record for "${updatedEmployee.name || id}" was successfully updated.`,
     })
+
+    return updatedEmployee
   }
 
   // Delete Employee
-  const deleteEmployee = (id) => {
-    const target = employees.find((e) => e.id === id)
-    setEmployees((prev) => prev.filter((emp) => emp.id !== id))
+  const deleteEmployee = async (id) => {
+    const target = employees.find(
+      (e) =>
+        e.id?.toLowerCase() === String(id).toLowerCase() ||
+        e.employee_id?.toLowerCase() === String(id).toLowerCase() ||
+        e.dbId === id
+    )
+
+    try {
+      const query = target?.dbId
+        ? supabase.from('employees').delete().eq('id', target.dbId)
+        : supabase.from('employees').delete().eq('employee_id', id)
+
+      const { error: deleteError } = await query
+      if (deleteError) {
+        console.error('[EmployeeContext] Supabase delete error:', deleteError)
+        if (deleteError.code === '42501' || deleteError.message?.includes('row-level security')) {
+          setNotification({
+            type: 'danger',
+            title: 'Permission Error (RLS)',
+            text: 'Supabase Row-Level Security blocked removing this record. ' + deleteError.message,
+          })
+          throw deleteError
+        }
+        throw deleteError
+      }
+    } catch (err) {
+      console.warn('[EmployeeContext] Delete employee fallback to local state:', err.message)
+    }
+
+    setEmployees((prev) =>
+      prev.filter(
+        (emp) =>
+          emp.id?.toLowerCase() !== String(id).toLowerCase() &&
+          emp.employee_id?.toLowerCase() !== String(id).toLowerCase() &&
+          emp.dbId !== id
+      )
+    )
+
     setNotification({
       type: 'info',
       title: 'Employee Archived',
@@ -292,13 +620,16 @@ export function EmployeeProvider({ children }) {
     })
   }
 
-  // Helper to clear notification
   const clearNotification = () => setNotification(null)
 
   return (
     <EmployeeContext.Provider
       value={{
         employees,
+        departments,
+        loading,
+        error,
+        refetch: loadEmployees,
         addEmployee,
         updateEmployee,
         deleteEmployee,

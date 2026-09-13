@@ -106,7 +106,10 @@ export function EmployeeProfile() {
 
   // Find target employee
   const employee = employees.find(
-    (e) => e.id.toLowerCase() === (employeeId || '').toLowerCase()
+    (e) =>
+      e.id?.toLowerCase() === (employeeId || '').toLowerCase() ||
+      e.employee_id?.toLowerCase() === (employeeId || '').toLowerCase() ||
+      e.dbId === employeeId
   )
 
   // Fallback for invalid or missing employee ID
