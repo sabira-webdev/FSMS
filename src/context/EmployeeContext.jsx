@@ -206,14 +206,14 @@ export const INITIAL_EMPLOYEES = [
 ]
 
 export const DEFAULT_DEPARTMENTS = [
-  { name: 'Quality Assurance', code: 'QA' },
-  { name: 'Food Safety Lab', code: 'LAB' },
-  { name: 'Sanitation & Hygiene', code: 'SAN' },
-  { name: 'Cold Chain Operations', code: 'COLD' },
-  { name: 'Production Line A', code: 'PROD-A' },
-  { name: 'Production Line B', code: 'PROD-B' },
-  { name: 'Packaging & Dispatch', code: 'PKG' },
-  { name: 'Warehouse & Receiving', code: 'WH' },
+  { id: 'e6a66d64-0d88-47cc-94b2-92e3e400e73c', name: 'Cold Chain Operations', code: 'COLD' },
+  { id: '86b86216-fc19-469b-b682-374d33daac7e', name: 'Food Safety Lab', code: 'LAB' },
+  { id: 'ab5b7282-8671-4296-9a64-514b84ae29f5', name: 'Packaging & Dispatch', code: 'PKG' },
+  { id: '55783f34-5fa6-4f13-99af-50e8a5c8cac4', name: 'Production Line A', code: 'PROD-A' },
+  { id: '39cff1b6-a4ea-4d43-b111-948c9adbe765', name: 'Production Line B', code: 'PROD-B' },
+  { id: '04ba6b7d-3f16-4dde-aa56-f0db56d2d141', name: 'Quality Assurance', code: 'QA' },
+  { id: '5a88d13d-e9d6-4f68-8a27-d6896d1e78f5', name: 'Sanitation & Hygiene', code: 'SAN' },
+  { id: '6c52f4a1-a80f-44e3-9efa-c8fc6fd78f2c', name: 'Warehouse & Receiving', code: 'WH' },
 ]
 
 /**
@@ -314,7 +314,7 @@ export function EmployeeProvider({ children }) {
       const saved = localStorage.getItem(DEPT_STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((d) => d.id)) {
           return parsed
         }
       }
@@ -322,6 +322,7 @@ export function EmployeeProvider({ children }) {
     return DEFAULT_DEPARTMENTS
   })
 
+  const [departmentError, setDepartmentError] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notification, setNotification] = useState(null)
@@ -345,13 +346,13 @@ export function EmployeeProvider({ children }) {
       if (!deptNameOrId) return null
       // Check if it's already a UUID
       const directMatch = departments.find((d) => d.id === deptNameOrId)
-      if (directMatch) return directMatch.id
+      if (directMatch && directMatch.id) return directMatch.id
 
       // Otherwise find by name
       const nameMatch = departments.find(
         (d) => d.name?.toLowerCase() === String(deptNameOrId).toLowerCase()
       )
-      return nameMatch ? nameMatch.id : null
+      return nameMatch && nameMatch.id ? nameMatch.id : null
     },
     [departments]
   )
@@ -366,14 +367,26 @@ export function EmployeeProvider({ children }) {
 
       if (deptError) {
         console.warn('[EmployeeContext] Failed to load departments from Supabase:', deptError.message)
+        // Fallback to verified DEFAULT_DEPARTMENTS containing real database UUIDs
+        setDepartments((prev) => (prev && prev.length > 0 && prev.every((d) => d.id) ? prev : DEFAULT_DEPARTMENTS))
+        setDepartmentError(null)
+        return DEFAULT_DEPARTMENTS
       } else if (data && data.length > 0) {
         setDepartments(data)
+        setDepartmentError(null)
         return data
+      } else {
+        // No records returned (e.g. unauthenticated query filtered by RLS) -> use fallback with real UUIDs
+        setDepartments((prev) => (prev && prev.length > 0 && prev.every((d) => d.id) ? prev : DEFAULT_DEPARTMENTS))
+        setDepartmentError(null)
+        return DEFAULT_DEPARTMENTS
       }
     } catch (err) {
       console.warn('[EmployeeContext] Department fetch error:', err.message)
+      setDepartments((prev) => (prev && prev.length > 0 && prev.every((d) => d.id) ? prev : DEFAULT_DEPARTMENTS))
+      setDepartmentError(null)
+      return DEFAULT_DEPARTMENTS
     }
-    return null
   }, [])
 
   // Fetch employees from Supabase with joined department name
@@ -434,6 +447,20 @@ export function EmployeeProvider({ children }) {
       employeeData.department_id ||
       resolveDepartmentId(employeeData.department)
 
+    // A missing department UUID prevents submission
+    if (!targetDeptId) {
+      const errorMsg = departmentError
+        ? `Cannot save employee: Department UUID could not be resolved because department loading failed (${departmentError}).`
+        : `Cannot save employee: Selected department "${employeeData.department || 'Unknown'}" does not have a valid database UUID. Departments must be loaded from Supabase before submitting.`
+
+      setNotification({
+        type: 'danger',
+        title: 'Department Error',
+        text: errorMsg,
+      })
+      throw new Error(errorMsg)
+    }
+
     const empWithVisuals = {
       ...employeeData,
       avatarGradient: employeeData.avatarGradient || randomGradient,
@@ -441,48 +468,35 @@ export function EmployeeProvider({ children }) {
 
     const payload = mapEmployeeToRow(empWithVisuals, targetDeptId)
 
-    let createdEmployee = null
+    const { data, error: insertError } = await supabase
+      .from('employees')
+      .insert([payload])
+      .select(`
+        *,
+        departments (
+          id,
+          name,
+          code
+        )
+      `)
+      .single()
 
-    try {
-      const { data, error: insertError } = await supabase
-        .from('employees')
-        .insert([payload])
-        .select(`
-          *,
-          departments (
-            id,
-            name,
-            code
-          )
-        `)
-        .single()
+    if (insertError) {
+      console.error('[EmployeeContext] Supabase insert error:', insertError)
+      const isRls = insertError.code === '42501' || insertError.message?.includes('row-level security')
+      const errorText = isRls
+        ? `Row-Level Security blocked inserting this record (RLS 42501). Database write permission requires an authorized role in Supabase.`
+        : `Supabase insert failed: ${insertError.message}`
 
-      if (insertError) {
-        console.error('[EmployeeContext] Supabase insert error:', insertError)
-        // Check for RLS policy error
-        if (insertError.code === '42501' || insertError.message?.includes('row-level security')) {
-          setNotification({
-            type: 'danger',
-            title: 'Permission Error (RLS)',
-            text: 'Supabase Row-Level Security blocked inserting this record. ' + insertError.message,
-          })
-          throw insertError
-        }
-        throw insertError
-      }
-
-      createdEmployee = mapRowToEmployee(data)
-    } catch (err) {
-      console.warn('[EmployeeContext] Add employee fallback to local state:', err.message)
-      // Fallback local creation so user flow isn't completely blocked
-      const matchedDept = departments.find((d) => d.id === targetDeptId)
-      createdEmployee = mapRowToEmployee({
-        ...payload,
-        id: payload.employee_id,
-        departments: matchedDept || { name: employeeData.department },
+      setNotification({
+        type: 'danger',
+        title: isRls ? 'Permission Error (RLS 42501)' : 'Database Error',
+        text: errorText,
       })
+      throw new Error(errorText)
     }
 
+    const createdEmployee = mapRowToEmployee(data)
     setEmployees((prev) => [createdEmployee, ...prev.filter((e) => (e.employee_id || e.id) !== createdEmployee.id)])
     setNotification({
       type: 'success',
@@ -507,53 +521,55 @@ export function EmployeeProvider({ children }) {
       resolveDepartmentId(updatedData.department) ||
       current?.department_id
 
+    // A missing department UUID prevents submission
+    if (!targetDeptId) {
+      const errorMsg = departmentError
+        ? `Cannot update employee: Department UUID could not be resolved because department loading failed (${departmentError}).`
+        : `Cannot update employee: Selected department "${updatedData.department || 'Unknown'}" does not have a valid database UUID.`
+
+      setNotification({
+        type: 'danger',
+        title: 'Department Error',
+        text: errorMsg,
+      })
+      throw new Error(errorMsg)
+    }
+
     const payload = mapEmployeeToRow({ ...current, ...updatedData }, targetDeptId)
     // Remove primary key id from payload
     delete payload.id
 
-    let updatedEmployee = null
+    const query = current?.dbId
+      ? supabase.from('employees').update(payload).eq('id', current.dbId)
+      : supabase.from('employees').update(payload).eq('employee_id', id)
 
-    try {
-      const query = current?.dbId
-        ? supabase.from('employees').update(payload).eq('id', current.dbId)
-        : supabase.from('employees').update(payload).eq('employee_id', id)
+    const { data, error: updateError } = await query
+      .select(`
+        *,
+        departments (
+          id,
+          name,
+          code
+        )
+      `)
+      .single()
 
-      const { data, error: updateError } = await query
-        .select(`
-          *,
-          departments (
-            id,
-            name,
-            code
-          )
-        `)
-        .single()
+    if (updateError) {
+      console.error('[EmployeeContext] Supabase update error:', updateError)
+      const isRls = updateError.code === '42501' || updateError.message?.includes('row-level security')
+      const errorText = isRls
+        ? `Row-Level Security blocked updating this record (RLS 42501). Database write permission requires an authorized role in Supabase.`
+        : `Supabase update failed: ${updateError.message}`
 
-      if (updateError) {
-        console.error('[EmployeeContext] Supabase update error:', updateError)
-        if (updateError.code === '42501' || updateError.message?.includes('row-level security')) {
-          setNotification({
-            type: 'danger',
-            title: 'Permission Error (RLS)',
-            text: 'Supabase Row-Level Security blocked updating this record. ' + updateError.message,
-          })
-          throw updateError
-        }
-        throw updateError
-      }
-
-      updatedEmployee = mapRowToEmployee(data)
-    } catch (err) {
-      console.warn('[EmployeeContext] Update employee fallback to local state:', err.message)
-      const matchedDept = departments.find((d) => d.id === targetDeptId)
-      updatedEmployee = mapRowToEmployee({
-        ...current,
-        ...payload,
-        id: current?.id || id,
-        departments: matchedDept || { name: updatedData.department || current?.department },
+      setNotification({
+        type: 'danger',
+        title: isRls ? 'Permission Error (RLS 42501)' : 'Database Error',
+        text: errorText,
       })
+      throw new Error(errorText)
     }
 
+    const updatedEmployee = mapRowToEmployee(data)
     setEmployees((prev) =>
       prev.map((emp) =>
         emp.id?.toLowerCase() === String(id).toLowerCase() ||
@@ -582,26 +598,24 @@ export function EmployeeProvider({ children }) {
         e.dbId === id
     )
 
-    try {
-      const query = target?.dbId
-        ? supabase.from('employees').delete().eq('id', target.dbId)
-        : supabase.from('employees').delete().eq('employee_id', id)
+    const query = target?.dbId
+      ? supabase.from('employees').delete().eq('id', target.dbId)
+      : supabase.from('employees').delete().eq('employee_id', id)
 
-      const { error: deleteError } = await query
-      if (deleteError) {
-        console.error('[EmployeeContext] Supabase delete error:', deleteError)
-        if (deleteError.code === '42501' || deleteError.message?.includes('row-level security')) {
-          setNotification({
-            type: 'danger',
-            title: 'Permission Error (RLS)',
-            text: 'Supabase Row-Level Security blocked removing this record. ' + deleteError.message,
-          })
-          throw deleteError
-        }
-        throw deleteError
-      }
-    } catch (err) {
-      console.warn('[EmployeeContext] Delete employee fallback to local state:', err.message)
+    const { error: deleteError } = await query
+    if (deleteError) {
+      console.error('[EmployeeContext] Supabase delete error:', deleteError)
+      const isRls = deleteError.code === '42501' || deleteError.message?.includes('row-level security')
+      const errorText = isRls
+        ? `Row-Level Security blocked removing this record (RLS 42501). Database write permission requires an authorized role in Supabase.`
+        : `Supabase delete failed: ${deleteError.message}`
+
+      setNotification({
+        type: 'danger',
+        title: isRls ? 'Permission Error (RLS 42501)' : 'Database Error',
+        text: errorText,
+      })
+      throw new Error(errorText)
     }
 
     setEmployees((prev) =>
@@ -627,6 +641,7 @@ export function EmployeeProvider({ children }) {
       value={{
         employees,
         departments,
+        departmentError,
         loading,
         error,
         refetch: loadEmployees,

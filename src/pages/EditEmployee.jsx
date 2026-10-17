@@ -95,7 +95,7 @@ const AVAILABLE_CERTIFICATIONS = [
 export function EditEmployee() {
   const { employeeId } = useParams()
   const navigate = useNavigate()
-  const { employees, departments: dbDepartments, updateEmployee } = useEmployees()
+  const { employees, departments: dbDepartments, departmentError, updateEmployee } = useEmployees()
 
   const departmentOptions = useMemo(() => {
     if (dbDepartments && dbDepartments.length > 0) {
@@ -276,6 +276,13 @@ export function EditEmployee() {
     }
     if (!formData.department) {
       newErrors.department = 'Department is required'
+    } else {
+      const selectedDept = dbDepartments?.find(
+        (d) => d.name?.toLowerCase() === formData.department.toLowerCase()
+      )
+      if (selectedDept && !selectedDept.id) {
+        newErrors.department = 'Selected department is missing a database UUID. Departments must be loaded from Supabase.'
+      }
     }
 
     setErrors(newErrors)
@@ -342,9 +349,10 @@ export function EditEmployee() {
     } catch (err) {
       setFormAlert({
         type: 'danger',
-        message: 'Failed to update employee record. ' + (err?.message || 'Please try again.'),
+        message: err?.message || 'Failed to update employee record. Please try again.',
       })
       setIsSubmitting(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
@@ -543,6 +551,12 @@ export function EditEmployee() {
                 </div>
                 {errors.department && (
                   <p className="text-xs text-rose-600 font-medium">{errors.department}</p>
+                )}
+                {!errors.department && departmentError && (
+                  <p className="text-[11px] text-amber-600 font-medium flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                    <span>Department sync notice: {departmentError}</span>
+                  </p>
                 )}
               </div>
 

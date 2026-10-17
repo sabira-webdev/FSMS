@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { LogOut } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 /**
  * Master Dashboard Layout Shell
@@ -12,11 +13,17 @@ import { LogOut } from 'lucide-react'
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [logoutModalOpen, setLogoutModalOpen] = useState(false)
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
 
-  const handleConfirmLogout = () => {
-    // Clean mock logout action for step 1
+  const handleConfirmLogout = async () => {
     setLogoutModalOpen(false)
-    alert('Logout triggered. Auth state will be managed in upcoming authentication step.')
+    try {
+      await signOut()
+      navigate('/login')
+    } catch (err) {
+      console.warn('[Layout] Logout error:', err?.message)
+    }
   }
 
   return (

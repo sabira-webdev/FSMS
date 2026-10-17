@@ -11,13 +11,31 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 /**
  * Top Header Navigation Component
  */
 export function Header({ onToggleSidebar, onLogoutClick }) {
+  const { user, profile } = useAuth()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+
+  const displayName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'Authorized User'
+  const displayRole = profile?.role || user?.user_metadata?.role || 'Quality Personnel'
+  const displayEmail = user?.email || profile?.email || ''
+  const initials =
+    displayName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0]?.toUpperCase())
+      .slice(0, 2)
+      .join('') || 'U'
 
   const notifRef = useRef(null)
   const profileRef = useRef(null)
@@ -174,13 +192,13 @@ export function Header({ onToggleSidebar, onLogoutClick }) {
           >
             {/* User Avatar */}
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-700 to-teal-500 text-white font-semibold text-xs flex items-center justify-center shadow-xs">
-              J
+              {initials}
             </div>
 
             {/* User Details (Desktop) */}
             <div className="hidden sm:block text-left">
-              <p className="text-xs font-bold text-slate-800 leading-tight">Jabir P k</p>
-              <p className="text-[10px] text-emerald-700 font-medium leading-none">QA & Safety Lead</p>
+              <p className="text-xs font-bold text-slate-800 leading-tight">{displayName}</p>
+              <p className="text-[10px] text-emerald-700 font-medium leading-none">{displayRole}</p>
             </div>
 
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
@@ -189,10 +207,10 @@ export function Header({ onToggleSidebar, onLogoutClick }) {
           {profileMenuOpen && (
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl py-1.5 z-50 animate-in fade-in-50 zoom-in-95">
               <div className="px-4 py-3 border-b border-slate-100">
-                <p className="text-xs font-bold text-slate-900">Jabir P k</p>
-                <p className="text-[11px] text-slate-500 truncate">jabirapk@fsms-org</p>
+                <p className="text-xs font-bold text-slate-900">{displayName}</p>
+                <p className="text-[11px] text-slate-500 truncate">{displayEmail}</p>
                 <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Lead Auditor (ISO 22000)
+                  {displayRole}
                 </span>
               </div>
 

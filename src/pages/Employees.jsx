@@ -150,10 +150,15 @@ export function Employees() {
   }, [employees])
 
   // Delete / Remove Employee
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingEmployee) return
-    deleteEmployee(deletingEmployee.id)
-    setDeletingEmployee(null)
+    try {
+      await deleteEmployee(deletingEmployee.id)
+    } catch (err) {
+      console.warn('[Employees] Delete employee failed:', err.message)
+    } finally {
+      setDeletingEmployee(null)
+    }
   }
 
   // Reset Filters

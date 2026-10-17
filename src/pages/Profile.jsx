@@ -1,5 +1,6 @@
 import React from 'react'
 import { User, ShieldCheck, Mail, Building, Award, Edit3 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import {
   PageHeader,
   Card,
@@ -12,12 +13,29 @@ import {
 } from '../components/common'
 
 export function Profile() {
+  const { user, profile } = useAuth()
+  const displayName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'Authorized User'
+  const displayRole = profile?.role || user?.user_metadata?.role || 'Quality Personnel'
+  const displayEmail = user?.email || profile?.email || ''
+  const initials =
+    displayName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0]?.toUpperCase())
+      .slice(0, 2)
+      .join('') || 'U'
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="My Profile"
         subtitle="Manage your personal credentials, digital signature, and auditor certifications."
-        badge={<Badge variant="success" dot size="sm">Verified Lead Auditor</Badge>}
+        badge={<Badge variant="success" dot size="sm">{displayRole}</Badge>}
         breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'My Profile' }]}
         actions={
           <Button variant="primary" size="sm" icon={Edit3}>
@@ -30,20 +48,20 @@ export function Profile() {
         {/* Left Column: Avatar & summary card */}
         <Card className="text-center p-6 space-y-4">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-emerald-700 to-teal-500 text-white font-bold text-2xl flex items-center justify-center mx-auto shadow-md shadow-emerald-900/20">
-            J
+            {initials}
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Jabir P k</h3>
-            <p className="text-xs text-slate-500 font-medium">Head of Quality Assurance & Compliance</p>
+            <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
+            <p className="text-xs text-slate-500 font-medium">{displayRole}</p>
             <div className="mt-2 flex items-center justify-center gap-1.5">
               <Badge variant="success" size="sm">Active</Badge>
-              <Badge variant="neutral" size="sm">ID: QA-8841</Badge>
+              <Badge variant="neutral" size="sm">ID: {user?.id?.slice(0, 8) || 'FSMS-USER'}</Badge>
             </div>
           </div>
           <div className="pt-4 border-t border-slate-100 text-xs text-left space-y-2.5 text-slate-600">
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-slate-400" />
-              <span>jabirapk@fsms-org</span>
+              <span>{displayEmail}</span>
             </div>
             <div className="flex items-center gap-2">
               <Building className="w-4 h-4 text-slate-400" />
